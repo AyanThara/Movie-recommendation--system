@@ -1,0 +1,130 @@
+import pickle
+import streamlit as st
+import requests
+
+# -------------------------------
+# Fetch Poster from TMDB API
+# -------------------------------
+def fetch_poster(movie_id):
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US"
+    data = requests.get(url).json()
+    poster_path = data.get('poster_path')
+
+    if poster_path:
+        return "https://image.tmdb.org/t/p/w500/" + poster_path
+    return "https://via.placeholder.com/500x750?text=No+Image"
+
+# -------------------------------
+# Recommend Function
+# -------------------------------
+def recommend(movie):
+    movie = movie.lower()
+    
+    try:
+        index = movies[movies['title'].str.lower() == movie].index[0]
+    except:
+        return [], []
+
+    distances = sorted(
+        list(enumerate(similarity[index])),
+        reverse=True,
+        key=lambda x: x[1]
+    )
+
+    recommended_movie_names = []
+    recommended_movie_posters = []
+
+    for i in distances[1:6]:
+        movie_id = movies.iloc[i[0]].movie_id
+        recommended_movie_names.append(movies.iloc[i[0]].title)
+        recommended_movie_posters.append(fetch_poster(movie_id))
+
+    return recommended_movie_names, recommended_movie_posters
+
+# -------------------------------
+# Load Model & Data
+# -------------------------------
+movies = pickle.load(open("model/movie_list.pkl", "rb"))
+similarity = pickle.load(open("model/similarity.pkl", "rb"))
+
+# -------------------------------
+# Streamlit Frontend
+# -------------------------------
+st.header("🎬 Movie Recommender System")
+
+movie_list = movies['title'].values
+
+selected_movie = st.selectbox(
+    "Search or select a movie",
+    movie_list
+)
+
+if st.button("Show Recommendations"):
+    names, posters = recommend(selected_movie)
+
+    if len(names) == 0:
+        st.error("Movie not found in database!")
+    else:
+        cols = st.columns(5)
+
+        for i in range(5):
+            with cols[i]:
+                st.text(names[i])
+                st.imageport streamlit as st
+import pickle
+import requests
+
+# -------------------- FETCH POSTER --------------------
+def fetch_poster(movie_name):
+    api_key = "80007cf5"
+
+    # Clean title → remove bracket year
+    movie_name = movie_name.split("(")[0].strip()
+
+    # OMDb request
+    url = f"http://www.omdbapi.com/?t={movie_name}&apikey={api_key}"
+    data = requests.get(url).json()
+
+    poster = data.get("Poster", "")
+
+    # Fix HTTPS (very important)
+    if poster and poster != "N/A":
+        return poster.replace("http://", "https://")
+
+    return "https://via.placeholder.com/300x450?text=No+Poster"
+
+# -------------------- RECOMMEND --------------------
+def recommend(movie):
+    index = movies[movies["title"] == movie].index[0]
+    distances = sorted(list(enumerate(similarity[index])), reverse=True, key=lambda x: x[1])
+
+    recommended_movies = []
+    recommended_posters = []
+
+    for i in distances[1:6]:
+        movie_title = movies.iloc[i[0]].title
+        recommended_movies.append(movie_title)
+        recommended_posters.append(fetch_poster(movie_title))
+
+    return recommended_movies, recommended_posters
+
+# -------------------- LOAD DATA --------------------
+import pickle
+movies = pickle.load(open("movie_list.pkl", "rb"))
+similarity = pickle.load(open("similarity.pkl", "rb"))
+
+# -------------------- UI --------------------
+st.title("🎬 Movie Recommender System")
+
+movie_list = movies["title"].values
+selected_movie = st.selectbox("Search or select a movie", movie_list)
+
+if st.button("Show Recommendations"):
+    names, posters = recommend(selected_movie)
+
+    cols = st.columns(5)
+
+    for i in range(5):
+        with cols[i]:
+            st.text(names[i])
+            st.image(posters[i])
